@@ -244,9 +244,47 @@ as Top_Categories where Rank = (((select COUNT(*) from dbo.Categories)+1)-@N)
 select * from dbo.Customers;
 select CompanyName, City, ISNULL(Region, 'No Data') AS Region from dbo.Suppliers;
 
-Declare @R int = 2
+Declare @R int = 6
 select Region, [Customers from Region] from
 (select ISNULL(Region, 'No Data') as Region, COUNT(Distinct CustomerID) as [Customers from Region],
 DENSE_RANK() over (order by COUNT(Distinct CustomerID) desc)
 as Rank from dbo.Customers group by Region) as Regional_Count where Rank = @R
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+
+
+
+
+
+-- 16. List all the regions and the count of customers from that region.
+
+select ISNULL(Region, 'No Data') as Region, COUNT(Distinct CustomerID) as [Customers from Region] from dbo.Customers group by Region;
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+-- 17. For a given order id, display the order id, customer id, customer name, employee id, employee name, order date and the total number of products in that order.
+
+select OrderID, CustomerID, ContactName, EmployeeID, [Employee Name], OrderDate, [Total Number of Products in the OrderID] from 
+(select O.OrderID, C.CustomerID, C.ContactName,
+E.EmployeeID, E.FirstName + ' ' + E.LastName as [Employee Name],
+O.OrderDate, sum(D.ProductID)
+as [Total Number of Products in the OrderID] from dbo.Orders as O
+join dbo.Customers as C on O.CustomerID = C.CustomerID
+join dbo.Employees as E on O.EmployeeID = E.EmployeeID
+join dbo.[Order Details] as D on O.OrderID = D.OrderID
+group by O.OrderID, C.CustomerID, C.ContactName, E.EmployeeID,
+E.FirstName + ' ' + E.LastName, O.OrderDate) as Final_Result where OrderID = 10248;
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+-- 18. List out all orders that were delivered before the requested date?
+
+select OrderID, RequiredDate, ShippedDate, [DATE Difference] from
+(select OrderID, RequiredDate, ShippedDate, DATEDIFF(dd, ShippedDate, RequiredDate) as [Date Difference] from dbo.Orders)
+as Deliveries where [Date Difference] < 0;
