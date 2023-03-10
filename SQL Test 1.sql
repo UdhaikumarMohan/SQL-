@@ -31,12 +31,28 @@ join dbo.Suppliers as S on P.SupplierID = S.SupplierID;
 
 -- 6. Find out the second costliest product.
 
+select ProductName, UnitPrice from dbo.Products 
+where UnitPrice = (select max(UnitPrice) as [2nd Costliest] from dbo.Products where UnitPrice not in (select max(UnitPrice) from dbo.Products));
+
 select max(UnitPrice) as [2nd Costliest] from dbo.Products where UnitPrice not in (select max(UnitPrice) from dbo.Products);
 
 select max(UnitPrice) as [2nd Costliest] from dbo.Products where UnitPrice < (select max(UnitPrice) from dbo.Products);
 
-select UnitPrice from dbo.Products order by UnitPrice desc;
+-- Nth highest value
 
+select Top 1 ProductName, UnitPrice from (select Top 10 with ties ProductName, UnitPrice from dbo.Products order by UnitPrice desc) as N_Max order by UnitPrice asc;
+
+-- The below query will not work because we cannot give parameters on select statement.
+
+--(declare @i int
+--set @i = 10
+--select Top 1 ProductName, UnitPrice from (select Top @i with ties ProductName, UnitPrice from dbo.Products order by UnitPrice desc) as N_Max order by UnitPrice asc;)
+
+-- Select Nth highest using dense_rank.
+Declare @i int
+set @i=5
+select ProductName, UnitPrice from (select ProductName, UnitPrice, DENSE_RANK() over (order by UnitPrice desc) as Rank from dbo.Products)
+as N_Max Where Rank = @i
 
 -- 7. List out all the customers and the count of the orders that they made.
 
@@ -45,11 +61,14 @@ select CustomerID, Count(*) as [Number of Orders] from dbo.Orders group by Custo
 
 -- 8. Find customer with highest number of orders.
 
-select Top 1 with ties CustomerID, Count(*) as [Number of Orders] from dbo.Orders group by CustomerID order by [Number of Orders] Desc;
+select Top 1 CustomerID, Count(*) as [Number of Orders] from dbo.Orders group by CustomerID order by [Number of Orders] Desc;
 
-select CustomerID, Count(*) as [Number of Orders] from dbo.Orders group by CustomerID having Count(*) = MAX(COUNT(*));
+declare @j int
+set @j = 1
+select CustomerID, [Number of Orders] from
+(select CustomerID, COUNT(*) as [Number of Orders], DENSE_RANK() over (order by count(*) desc) as Rank from dbo.Orders group by CustomerID) as Max_Ord
+where Rank = @j;
 
-select CustomerID, COUNT(CustomerID) as [Number of Orders] from dbo.Orders group by CustomerID having COUNT(CustomerID) = MAX(COUNT(CustomerID));
 
 -- We can find out by creating view.
 
@@ -61,7 +80,16 @@ select CustomerID, [Number of Orders] from vwNumOrd where [Number of Orders] = m
 
 -- 9. Find out the customers with second highest orders.
 
+select CustomerID, COUNT(*) as [Total Orders] from dbo.Orders where CustomerID = (select Top 1 CustomerID from 
+(select Top 2 CustomerID, COUNT(*) as [Num of Ord] from dbo.Orders
+group by CustomerID order by COUNT(*) desc) as Ord_Count group by CustomerID
+order by COUNT(*) asc) group by CustomerID;
 
+declare @j int
+set @j = 2
+select CustomerID, [Number of Orders] from
+(select CustomerID, COUNT(*) as [Number of Orders], DENSE_RANK() over (order by count(*) desc) as Rank from dbo.Orders group by CustomerID) as Max_Ord
+where Rank = @j;
 
 -- 10. Find the order with highest number of Items.
 
@@ -71,11 +99,16 @@ select ProductName, UnitsOnOrder from dbo.Products where UnitsOnOrder = (Select 
 
 -- 11. Find the customer with the highest order value.
 
-create view vwPriceTable as 
-(select O.CustomerID, O.OrderID, D.UnitPrice from dbo.Orders as O join dbo.[Order Details] as D on O.OrderID = D.OrderID);
-Go
+select Top 1 CustomerID, SUM(UnitPrice) as Ord_Value from
+(select C.CustomerID, O.OrderID, D.UnitPrice from dbo.Customers as C 
+join dbo.Orders as O on C.CustomerID = O.CustomerID
+join dbo.[Order Details] as D on O.OrderID = D.OrderID) as Ord_Details group by CustomerID order by Ord_Value desc;
 
-select top 1 CustomerID, sum(UnitPrice) as SumOfPrice from dbo.vwPriceTable group by CustomerID order by SumOfPrice desc;
+select CustomerID, Price from
+(select CustomerID, Sum(UnitPrice) as Price, DENSE_RANK() over (order by Sum(UnitPrice) desc) as Rank from
+(select C.CustomerID, O.OrderID, D.UnitPrice from dbo.Customers as C 
+join dbo.Orders as O on C.CustomerID = O.CustomerID
+join dbo.[Order Details] as D on O.OrderID = D.OrderID) as Ord_value group by CustomerID) as Premium_Cust where Rank = 1 
 
 -- 12. Find the supplier who supplies the highest number of orders.
 
