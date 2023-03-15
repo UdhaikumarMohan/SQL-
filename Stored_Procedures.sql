@@ -47,7 +47,7 @@ select * from dbo.Employee;
 
 -- To counter that we create a SP for inserting data into employee and to check Primary Key constraint.
 
-alter Procedure STP_Employee_Insert(@id int, @name varchar(50), @adid int)
+Alter Procedure STP_Employee_Insert(@id int, @name varchar(50), @adid int)
 as
 begin
 	if exists (Select EmpID from dbo.Employee where EmpID = @id)
@@ -72,6 +72,55 @@ exec STP_Employee_Insert @name = 'Akram', @id = 1, @adid = 5
 exec STP_Employee_Insert @name = 'Akram', @id = 5, @adid = 5
 
 Select * from dbo.Employee;
+
+-- Checking Foreign Key constraint.
+
+Alter Procedure STP_Employee_Insert (@id int, @name varchar(50), @adid int)
+as
+begin
+	if exists(Select EmpID from dbo.Employee where EmpID = @id)
+	begin
+		raiserror('Employee ID is already Exists', 17, 1)
+	end
+
+	else
+	begin
+		if exists(Select Add_Id from dbo.Emp_Address where Add_ID = @adid)
+		begin
+			insert into dbo.Employee values (@id, @name, @adid)
+		end
+
+		else
+		begin
+			raiserror('No Data for the given Address_Id...', 16, 1)
+		end
+	end
+end
+
+exec STP_Employee_Insert @name = 'Ragu', @id = 6, @adid = 1
+
+-- Throws error, because there is no data for address id 1 in address table.
+
+insert into Emp_Address values (1, 'Trichy')
+
+insert into Emp_Address values (2, 'Chennai')
+
+insert into Emp_Address values (3, 'Madurai')
+
+insert into Emp_Address values (4, 'Salem')
+
+insert into Emp_Address values (5, 'Coiambatore')
+
+select * from dbo.Emp_Address;
+
+-- Now we have given some data to address table now lets execute stored procedure.
+
+
+exec STP_Employee_Insert @name = 'Ragu', @id = 6, @adid = 1
+
+select * from dbo.Employee
+
+
 			
 
 
