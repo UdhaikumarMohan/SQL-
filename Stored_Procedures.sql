@@ -121,6 +121,129 @@ exec STP_Employee_Insert @name = 'Ragu', @id = 6, @adid = 1
 select * from dbo.Employee
 
 
+
+-- Create SP insert with auto increment support dependent tables.
+
+drop table Employee; 
+
+drop table Emp_Address;
+
+Create table Employee (Emp_ID int not null, Emp_Name varchar(50), Address_ID int);
+
+Create table Emp_Address(Address_ID int not null identity(1,1) Primary Key, City varchar(50));
+
+-- Create SP to insert Employee Details.
+
+Alter Procedure STP_Employee_Details (@ID int, @Name varchar(50), @City varchar(50))
+as
+begin
+	declare @Address_ID int
+
+	if exists(select City from dbo.Emp_Address where City = @City)
+	begin
+		set @Address_ID = (Select Address_ID from dbo.Emp_Address where City = @City)
+
+		if exists(select Emp_ID from dbo.Employee where Emp_ID = @id)
+		begin
+			raiserror('Employee ID is already exists', 16, 1)
+		end
+
+		else
+		begin
+			insert into dbo.Employee values(@id, @name, @Address_ID)
+		end
+	end
+
+	else
+	begin
+		insert into Emp_Address values(@City)
+		set @Address_ID = (select Address_ID from dbo.Emp_Address where City = @City) 
+
+		if exists(select Emp_ID from dbo.Employee where Emp_ID = @id)
+		begin
+			raiserror('Employee ID is already exists', 16, 1)
+		end
+
+		else
+		begin
+			insert into dbo.Employee values(@id, @name, @Address_ID)
+		end
+	end
+end
+-- executing STP
+
+select * from dbo.Employee
+
+select * from dbo.Emp_Address
+
+exec STP_Employee_Details @ID = 1, @Name = 'Udhai', @City = 'Trichy'
+
+exec STP_Employee_Details @ID = 2, @Name = 'Chandran', @City = 'Trichy'
+
+exec STP_Employee_Details @ID = 3, @Name = 'Nancy', @City = 'Trichy'
+
+exec STP_Employee_Details @ID = 4, @Name = 'Ragu', @City = 'Chennai'
+
+exec STP_Employee_Details @ID = 5, @Name = 'Varsha', @City = 'Coimbatore'
+
+exec STP_Employee_Details @ID = 6, @Name = 'Sathish', @City = 'Trichy'
+
+exec STP_Employee_Details @ID = 7, @Name = 'Arun', @City = 'Coimbatore'
+
+exec STP_Employee_Details @ID = 8, @Name = 'Ashik', @City = 'Karur'
+
+
+-- Validation using SP
+-- Some text conversions are also possible.
+
+Create table Customers (Cust_Name varchar(50), email varchar(50), Country varchar(50), City varchar(50));
+
+
+Create Procedure STP_Customer_Insert(@Name varchar(50), @email varchar(50), @Country varchar(50), @City varchar(50))
+as
+begin
+	-- Validate PrimaryKey.
+	if exists (Select Cust_Name from dbo.Customers where Cust_Name = @Name)
+	begin
+		raiserror('Customer name is already exists', 16,1)
+	end
+
+	else
+	-- If customer is not already there.
+	begin
+		-- to change upper case.
+		set @Name = upper(@Name)
+		set @Country = upper(@Country)
+		set @City = upper(@City)
+
+		-- Validate email
+		declare @val_email tinyint
+		set @val_email = charindex('@', @email)
+
+		if @val_email < 2
+		begin
+			raiserror('Invalid email id....', 16, 1)
+			return
+		end
+
+		else
+		begin
+			insert into dbo.Customers values(@Name, @email, @Country, @City)
+		end
+	end
+end
+
+exec STP_Customer_Insert 'Udhai', 'udhaikumar4@gmail.com', 'India', 'Trichy'
+
+select * from dbo.Customers;
+
+exec STP_Customer_Insert 'Sathish', 'S@athish.com', 'India', 'Trichy'
+
+
+
+
+
+
 			
 
 
