@@ -62,3 +62,15 @@ exec STP_Room_Availability_Insert @Room_Number = 'P3', @Category = 'O+'
 
 select * from Room_Availability
 
+-- Executing Check_IN
+
+exec STP_Check_IN @Customer_ID = 1, @Room_Number = 'P1', @Reason = 'Bussiness Meeting'
+
+exec STP_Check_IN @Customer_ID = 1, @Room_Number = 'P2', @Reason = 'Bussiness Meeting'
+
+select * from Room_Availability
+
+select * from Room_Allotment 
+
+
+

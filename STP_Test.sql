@@ -25,14 +25,14 @@ Constraint My_PK_3 Primary Key(Room_Number))
 Create table Room_Allotment(Booking_ID bigint not null,
 Customer_ID bigint not null Constraint My_FK_2 Foreign Key references Customer_Details(Customer_ID),
 Room_Number varchar(50) not null Constraint My_FK_3 Foreign Key references Room_Availability(Room_Number),
-Reason text, Check_IN datetime, Check_OUT datetime,
+Reason text, Check_IN datetime,
 Constraint My_PK_4 Primary Key(Booking_ID, Customer_ID, Room_Number));
 
 -- Time of Stay
 
 Create table Time_of_Stay(Booking_ID bigint not null,
 Customer_ID bigint not null,
-Room_Number varchar(50) not null, Duration int,
+Room_Number varchar(50) not null, Check_Out datetime, Duration int,
 Constraint My_FK_4 Foreign Key (Booking_ID, Customer_ID, Room_Number) 
 references Room_Allotment(Booking_ID, Customer_ID, Room_Number));
 
@@ -106,11 +106,11 @@ end
 select * from Room_Category
 
 
--- Create STP for Room_Availability
--- Create table Room_Availability(Room_Number varchar(50) not null,
--- Category varchar(5) Constraint My_FK_1 Foreign Key references Room_Category(Category),
--- Availability varchar(50) Constraint Default_1 Default 'Yes', 
--- Constraint My_PK_3 Primary Key(Room_Number))
+/*Create STP for Room_Availability
+Create table Room_Availability(Room_Number varchar(50) not null,
+Category varchar(5) Constraint My_FK_1 Foreign Key references Room_Category(Category),
+Availability varchar(50) Constraint Default_1 Default 'Yes', 
+Constraint My_PK_3 Primary Key(Room_Number))*/
 
 Create Procedure STP_Room_Availability_Insert
 (@Room_Number varchar(50), @Category varchar(5), @Availability varchar(50) = 'Yes')
@@ -135,7 +135,60 @@ begin
 	end
 end
 
-select * from Room_Availability
+
+-- Check_IN process
+
+/*Create table Room_Allotment(Booking_ID bigint not null,
+Customer_ID bigint not null Constraint My_FK_2 Foreign Key references Customer_Details(Customer_ID),
+Room_Number varchar(50) not null Constraint My_FK_3 Foreign Key references Room_Availability(Room_Number),
+Reason text, Check_IN datetime,
+Constraint My_PK_4 Primary Key(Booking_ID, Customer_ID, Room_Number));*/
+
+Alter Procedure STP_Check_IN (@Customer_ID bigint, @Room_Number varchar(50), @Reason text)
+as
+begin
+	declare @Booking_ID bigint
+	set @Booking_ID = ((select COUNT(Booking_ID) from Room_Allotment) + 1)
+
+	/* We cannot call date function in the execution. So we declare Check_In date here in STP.
+	If we want to give date and time manually then we wil give input through execution. */
+
+	declare @Check_IN datetime
+	set @Check_IN = GETDATE()
+
+	if exists(select Customer_ID from Customer_Details where Customer_ID = @Customer_ID)
+	begin
+		
+		if exists(select Room_Number from Room_Availability where Room_Number = @Room_Number)
+		begin
+			declare @is_avail varchar(50)
+			set @is_avail = 'No'
+
+			if (select Availability from Room_Availability where Room_Number = @Room_Number) = @is_avail
+			begin
+				raiserror('This Room is already booked...', 16,1)				
+			end
+
+			else
+			begin
+				insert into Room_Allotment values(@Booking_ID, @Customer_ID, @Room_Number, @Reason, @Check_IN)
+				
+				update Room_Availability set Availability = 'No' where Room_Number = @Room_Number
+			end
+		end
+
+		else
+		begin
+			raiserror('Room_Number does not exists in this Hotel...', 16, 1)
+		end
+	end
+
+	else
+	begin
+		raiserror('Customer_ID does not exists. Please add Customer in Customer_Details...', 16, 1)
+	end
+end
+
 
 
 
