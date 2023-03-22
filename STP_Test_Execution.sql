@@ -96,6 +96,12 @@ exec STP_Check_OUT @Booking_ID = 1, @Room_Number = 'P1'
 
 exec STP_Check_OUT @Booking_ID = 1, @Room_Number = 'P2'
 
+exec STP_Check_OUT @Booking_ID = 4, @Room_Number = 'F1'
+
+exec STP_Check_OUT @Booking_ID = 3, @Room_Number = 'T3'
+
+exec STP_Check_OUT @Booking_ID = 2, @Room_Number = 'S1'
+
 
 
 
@@ -105,7 +111,6 @@ select * from Room_Allotment
 
 select * from Time_of_Stay
 
-select * from Room_Rent
 
 
 

@@ -33,17 +33,10 @@ Constraint My_PK_4 Primary Key(Booking_ID, Customer_ID, Room_Number));
 
 Create table Time_of_Stay(Booking_ID bigint not null,
 Customer_ID bigint not null,
-Room_Number varchar(50) not null, Check_Out datetime, Duration int,
+Room_Number varchar(50) not null, Check_Out datetime, Duration_in_Days int, Rent_of_Stay numeric(10,2)
 Constraint My_FK_4 Foreign Key (Booking_ID, Customer_ID, Room_Number) 
 references Room_Allotment(Booking_ID, Customer_ID, Room_Number));
 
--- Rent calculation
-
-Create table Room_Rent(Booking_ID bigint not null,
-Customer_ID bigint not null,
-Room_Number varchar(50) not null, Duration_in_Days int, Rent_of_Stay numeric(10,2),
-Constraint My_FK_5 Foreign Key (Booking_ID, Customer_ID, Room_Number) 
-references Room_Allotment(Booking_ID, Customer_ID, Room_Number));
 
 -- Prepare Bill
 
@@ -182,9 +175,8 @@ begin
 				set @Duration = Null
 				set @Rent = Null
 
-				insert into Time_of_Stay values(@Booking_ID, @Customer_ID, @Room_Number, @Check_OUT, @Duration)
+				insert into Time_of_Stay values(@Booking_ID, @Customer_ID, @Room_Number, @Check_OUT, @Duration, @Rent)
 
-				insert into Room_Rent values(@Booking_ID, @Customer_ID, @Room_Number, @Duration, @Rent)
 			end
 		end
 
@@ -231,12 +223,10 @@ begin
 			(select A.Room_Number, C.Category, C.Total_Rent 
 			from Room_Availability as A 
 			join Room_Category as C on A.Category = C.Category)
-			as Room_Rent where Room_Number = @Room_Number)
+			as Room_Rent where Room_Number = @Room_Number) * @Duration
 
-			update Time_of_Stay set Check_Out = @Check_OUT, Duration = @Duration where Booking_ID = @Booking_ID and Room_Number = @Room_Number
-
-			update Room_Rent set Duration_in_Days = @Duration, Rent_of_Stay = @Rent_of_Stay
-
+			update Time_of_Stay set Check_Out = @Check_OUT, Duration_in_Days = @Duration, Rent_of_Stay = @Rent_of_Stay where Booking_ID = @Booking_ID and Room_Number = @Room_Number
+			
 			update Room_Availability set Availability = 'Yes' where Room_Number = @Room_Number
 	
 		end
