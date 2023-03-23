@@ -103,6 +103,13 @@ exec STP_Check_OUT @Booking_ID = 3, @Room_Number = 'T3'
 exec STP_Check_OUT @Booking_ID = 2, @Room_Number = 'S1'
 
 
+exec STP_Billing @Booking_ID = 1, @Customer_ID = 1
+
+exec STP_Billing @Booking_ID = 2, @Customer_ID = 2
+
+exec STP_Billing @Booking_ID = 3, @Customer_ID = 4
+
+exec STP_Billing @Booking_ID = 4, @Customer_ID = 3
 
 
 select * from Room_Availability
@@ -110,6 +117,10 @@ select * from Room_Availability
 select * from Room_Allotment 
 
 select * from Time_of_Stay
+
+select * from Final_Bill
+
+
 
 
 

@@ -142,6 +142,14 @@ Alter Procedure STP_Check_IN (@Booking_ID bigint, @Customer_ID bigint, @Room_Num
 as
 begin
 	
+	if exists(select Booking_ID, Customer_ID, Room_Number from Room_Allotment
+	where Booking_ID = @Booking_ID and Customer_ID = @Customer_ID and Room_Number = @Room_Number)
+	begin
+		raiserror('The given Booking_ID, Customer_ID, Room_Number are registered...', 16, 1) 
+	end
+
+	else
+	begin
 	/* We cannot call date function in the execution. So we declare Check_In date here in STP.
 	If we want to give date and time manually then we wil give input through execution. */
 
@@ -190,13 +198,15 @@ begin
 	begin
 		raiserror('Customer_ID does not exists. Please add Customer in Customer_Details...', 16, 1)
 	end
+
+	end
 end
 
 -- Check_OUT process
 
 /*Create table Time_of_Stay(Booking_ID bigint not null,
 Customer_ID bigint not null,
-Room_Number varchar(50) not null, Check_Out datetime, Duration int,
+Room_Number varchar(50) not null, Check_Out datetime, Duration_in_Days int, Rent_of_Stay numeric(10,2)
 Constraint My_FK_4 Foreign Key (Booking_ID, Customer_ID, Room_Number) 
 references Room_Allotment(Booking_ID, Customer_ID, Room_Number));*/
 
@@ -243,15 +253,54 @@ begin
 	end 
 end
 
+-- Billing
 
+/*Create table Final_Bill(Bill_Number bigint not null Constraint My_PK_6 Primary Key,
+Booking_ID bigint not null, Customer_ID bigint not null, Total_Bill_Amount numeric (10,2));*/
 
+Alter Procedure STP_Billing(@Booking_ID bigint, @Customer_ID bigint)
+as
+begin
+	declare @Bill_Number bigint
+	set @Bill_Number = ((select Count(Bill_Number) from Final_Bill) + 1)
 
+	if exists(select Customer_ID from Room_Allotment where Booking_ID = @Booking_ID and Customer_ID = @Customer_ID)
+	begin
+		declare @X int
+		Set @X = (select count(Availability) from
+		(select Al.Booking_ID, Al.Room_Number, Av.Availability from Room_Allotment as Al 
+		join Room_Availability as Av on Al.Room_Number = Av.Room_Number where Booking_ID = @Booking_ID) 
+		as A group by Availability
+		having Availability = 'No')
 
+		if(@X > 0)
+		begin
+			raiserror('Not all rooms under this Booking_ID are vacated...', 16,1)
+		end
 
+		else
+		begin
+			
+			if exists(select Booking_ID from Final_Bill where Booking_ID = @Booking_ID)
+			begin
+				raiserror('Bill has been already prepared for this Booking_ID...',16,1)
+			end 
 
+			else
+			begin
+				declare @Total_Rent numeric(10,2)
+				set @Total_Rent = (select SUM(Rent_of_Stay) from Time_of_Stay where Booking_ID = @Booking_ID)
 
+				insert into Final_Bill values(@Bill_Number, @Booking_ID, @Customer_ID, @Total_Rent)
+			end
+		end
+	end
 
-
+	else
+	begin
+		raiserror('Given Customer_ID is does not match with the Booking_ID, please provide correct Customer_ID...', 16,1)
+	end
+end
 
 
 
